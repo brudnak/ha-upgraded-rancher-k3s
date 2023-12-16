@@ -124,7 +124,7 @@ func TestJenkinsCleanup(t *testing.T) {
 	defer deleteS3Object(viper.GetString("s3.bucket"), "terraform.tfstate")
 }
 
-func TestHostCleanup(t *testing.T) {
+func TestHACleanup(t *testing.T) {
 	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
 		TerraformDir: "../modules/aws",
 		NoColor:      true,
@@ -134,17 +134,13 @@ func TestHostCleanup(t *testing.T) {
 
 	filepaths := []string{
 		"../../ha.yml",
-		"../../tenant.yml",
+		"../modules/helm/ha/main.tf",
+		"../modules/helm/ha/variables.tf",
 		"../modules/helm/ha/.terraform.lock.hcl",
 		"../modules/helm/ha/terraform.tfstate",
 		"../modules/helm/ha/terraform.tfstate.backup",
 		"../modules/helm/ha/terraform.tfvars",
 		"../modules/helm/ha/upgrade.tfvars",
-		"../modules/helm/tenant/.terraform.lock.hcl",
-		"../modules/helm/tenant/terraform.tfstate",
-		"../modules/helm/tenant/terraform.tfstate.backup",
-		"../modules/helm/tenant/terraform.tfvars",
-		"../modules/helm/tenant/upgrade.tfvars",
 		"../modules/kubectl/.terraform.lock.hcl",
 		"../modules/kubectl/terraform.tfstate",
 		"../modules/kubectl/terraform.tfstate.backup",
@@ -158,14 +154,21 @@ func TestHostCleanup(t *testing.T) {
 
 	folderpaths := []string{
 		"../modules/helm/ha/.terraform",
-		"../modules/helm/tenant/.terraform",
 		"../modules/kubectl/.terraform",
 		"../modules/aws/.terraform",
 	}
 
 	cleanupFiles(filepaths...)
 	cleanupFolders(folderpaths...)
-	defer deleteS3Object(viper.GetString("s3.bucket"), "terraform.tfstate")
+
+	viper.AddConfigPath("../../")
+	viper.SetConfigName("config")
+	viper.SetConfigType("yml")
+	err := viper.ReadInConfig()
+	if err != nil {
+		log.Println("error reading config:", err)
+	}
+	deleteS3Object(viper.GetString("s3.bucket"), "terraform.tfstate")
 }
 
 func cleanupFiles(paths ...string) {
@@ -251,6 +254,43 @@ func deleteS3Object(bucket string, item string) error {
 	return nil
 }
 
+// deleteS3Object deletes an object from a specified S3 bucket
+func TestDeleteS3Object(t *testing.T) {
+
+	bucket := "atb-tf-bucket"
+	item := "terraform.tfstate"
+	viper.AddConfigPath("../../")
+	viper.SetConfigName("config")
+	viper.SetConfigType("yml")
+	err := viper.ReadInConfig()
+
+	os.Setenv("AWS_ACCESS_KEY_ID", viper.GetString("tf_vars.aws_access_key"))
+	os.Setenv("AWS_SECRET_ACCESS_KEY", viper.GetString("tf_vars.aws_secret_key"))
+
+	if err != nil {
+		log.Println("error reading config:", err)
+	}
+
+	sess, _ := session.NewSession(&aws.Config{
+		Region: aws.String(viper.GetString("s3.region"))},
+	)
+
+	svc := s3.New(sess)
+
+	_, err = svc.DeleteObject(&s3.DeleteObjectInput{Bucket: aws.String(bucket), Key: aws.String(item)})
+	if err != nil {
+		log.Println(err)
+	}
+
+	err = svc.WaitUntilObjectNotExists(&s3.HeadObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(item),
+	})
+	if err != nil {
+		log.Println(err)
+	}
+}
+
 func checkS3ObjectExists(item string) error {
 	viper.AddConfigPath("../../")
 	viper.SetConfigName("config")
@@ -286,6 +326,6 @@ func checkS3ObjectExists(item string) error {
 	}
 
 	// If we get to this point, it means the file exists, so we log an error message and exit the program.
-	log.Fatalf("A tfstate file already exists in bucket %s. Please clean up the old hosted/tenant environment before creating a new one.", bucket)
+	log.Fatalf("A tfstate file already exists in bucket %s. Please clean up the old HA K3s environment before creating a new one.", bucket)
 	return nil
 }

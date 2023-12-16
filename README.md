@@ -18,11 +18,11 @@ The job typically takes around 15 minutes for both creation and deletion. This i
 
 - Only one ha-upgraded-rancher-k3s job can be run per S3 bucket.
 - If a Terraform state file exists in your S3 bucket, you must run the cleanup job before you can run another job.
-- To create more than one hosted/tenant setup simultaneously, provide different S3 bucket names for each. Please note each bucket's name for the cleanup process.
+- To create more than one K3s HA setup simultaneously, provide different S3 bucket names for each. Please note each bucket's name for the cleanup process.
 
 ### Cleanup
 
-To run the Hosted/Tenant Cleanup Jenkins Job, use the same configuration file you used to create the setup. The job needs to initialize the state file in the S3 bucket before executing the `terraform destroy` command.
+To run the K3s HA Cleanup Jenkins Job, use the same configuration file you used to create the setup. The job needs to initialize the state file in the S3 bucket before executing the `terraform destroy` command.
 
 ## Config File Setup
 

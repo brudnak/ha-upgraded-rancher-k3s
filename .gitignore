@@ -315,6 +315,5 @@ var.auto.tfvars
 config
 config.yml
 ha.yml
-tenant.yml
 theconfig.yml
 upgrade.tfvars

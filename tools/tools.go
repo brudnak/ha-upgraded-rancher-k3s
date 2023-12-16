@@ -109,6 +109,12 @@ func (t *Tools) HAInstallK3S(config K3SConfig) string {
 		log.Println("failed creating ha config:", err)
 	}
 
+	mainTfFilePath := "../modules/helm/ha/main.tf"
+	hcl.CreateMainTf(mainTfFilePath)
+
+	variableTfFilePath := "../modules/helm/ha/variables.tf"
+	hcl.CreateVariablesTf(variableTfFilePath)
+
 	// Initial terraform variable file
 	initialFilePath := "../modules/helm/ha/terraform.tfvars"
 	hcl.RancherHelm(

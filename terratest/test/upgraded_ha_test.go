@@ -18,7 +18,6 @@ import (
 
 var haUrl string
 var password string
-var configIp string
 
 var tools toolkit.Tools
 
@@ -104,24 +103,6 @@ func TestUpgradeHARancher(t *testing.T) {
 	})
 
 	terraform.InitAndApply(t, terraformOptions)
-}
-
-func TestJenkinsCleanup(t *testing.T) {
-	createAWSVar()
-	os.Setenv("AWS_ACCESS_KEY_ID", viper.GetString("tf_vars.aws_access_key"))
-	os.Setenv("AWS_SECRET_ACCESS_KEY", viper.GetString("tf_vars.aws_secret_key"))
-	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
-		TerraformDir: "../modules/aws",
-		NoColor:      true,
-		BackendConfig: map[string]interface{}{
-			"bucket": viper.GetString("s3.bucket"),
-			"key":    "terraform.tfstate",
-			"region": viper.GetString("s3.region"),
-		},
-	})
-	terraform.Init(t, terraformOptions)
-	terraform.Destroy(t, terraformOptions)
-	defer deleteS3Object(viper.GetString("s3.bucket"), "terraform.tfstate")
 }
 
 func TestHACleanup(t *testing.T) {
